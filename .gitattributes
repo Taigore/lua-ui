@@ -1,4 +1,7 @@
-*.cpp       text eol=crlf
-*.h         text eol=crlf
-*.sln       -diff
-*.csproj    -diff
+*.cpp               text eol=crlf
+*.h                 text eol=crlf
+lua-5.4/src/*.c     text eol=lf
+lua-5.4/src/*.h     text eol=lf
+lua-5.4/src/*.hpp   text eol=lf
+*.sln               -diff
+*.csproj            -diff
