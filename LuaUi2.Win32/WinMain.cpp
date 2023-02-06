@@ -5,31 +5,32 @@ public:
     AppWindow(HINSTANCE instance, int cmdShow);
 
     void setup();
-    void run();
-
-    int getExitCode() const {
-        return exitCode;
-    }
 
 private:
     HINSTANCE instance;
     HWND winHandle;
-    int exitCode;
-    int cmdShow;
     ATOM clsHandle;
-    char padding[6]{};
+    int cmdShow;
 };
 
 AppWindow::AppWindow(HINSTANCE instance, int cmdShow) {
     this->instance = instance;
-    this->clsHandle = 0;
-    this->winHandle = 0;
-    this->exitCode = -1;
+    this->clsHandle = {};
+    this->winHandle = {};
     this->cmdShow = cmdShow;
 }
 
 LRESULT WINAPI wndProc(HWND window, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
+    case WM_CREATE:
+    {
+        auto createStruct = (CREATESTRUCT*)lParam;
+        auto appWindow = (AppWindow*)createStruct->lpCreateParams;
+
+        SetWindowLongPtr(window, GWLP_USERDATA, (LONG_PTR)appWindow);
+
+        return 0;
+    }
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
@@ -62,18 +63,28 @@ void AppWindow::setup() {
         nullptr,
         nullptr,
         instance,
-        nullptr);
+        this);
 
-    SetWindowLongPtr(winHandle, GWLP_USERDATA, (LONG_PTR)this);
-}
-
-void AppWindow::run() {
     ShowWindow(winHandle, cmdShow);
     UpdateWindow(winHandle);
+}
 
-    auto msg = MSG{};
+class MessageLoop {
+public:
+    void run();
+    int getExitCode() const;
+
+private:
+    MSG message;
+    int exitCode;
+    BYTE padding[4];
+};
+
+void MessageLoop::run() {
+    exitCode = -1;
+
     while (true) {
-        auto bRet = GetMessage(&msg, NULL, 0, 0);
+        auto bRet = GetMessage(&message, NULL, 0, 0);
         switch (bRet) {
         case -1:
         {
@@ -92,16 +103,20 @@ void AppWindow::run() {
         }
         case 0:
         {
-            exitCode = (int)msg.wParam;
+            exitCode = (int)message.wParam;
             return;
         }
         default:
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            TranslateMessage(&message);
+            DispatchMessage(&message);
         }
         }
     }
+}
+
+int MessageLoop::getExitCode() const {
+    return exitCode;
 }
 
 int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In_ LPSTR cmdLine, _In_ int cmdShow) {
@@ -111,7 +126,9 @@ int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In
 
     auto window = new AppWindow{ instance, cmdShow };
     window->setup();
-    window->run();
 
-    return window->getExitCode();
+    auto loop = MessageLoop{};
+    loop.run();
+
+    return loop.getExitCode();
 }
