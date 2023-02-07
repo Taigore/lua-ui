@@ -1,29 +1,7 @@
 #include "MessageLoop.h"
+#include "WindowPainter.h"
 
 #include <Windows.h>
-
-class WindowPainter {
-public:
-    static WindowPainter defaultPainter;
-
-    void paint(HWND window);
-
-private:
-    HDC dc;
-    PAINTSTRUCT paintStruct;
-};
-
-WindowPainter WindowPainter::defaultPainter{};
-
-void WindowPainter::paint(HWND window) {
-    dc = BeginPaint(window, &paintStruct);
-    auto brush = CreateSolidBrush(RGB(0, 0, 0));
-    FillRect(dc, &(paintStruct.rcPaint), brush);
-    DeleteObject(brush);
-    EndPaint(window, &paintStruct);
-    dc = {};
-    paintStruct = {};
-}
 
 class AppWindow {
 public:
@@ -37,7 +15,7 @@ private:
     HWND window;
     ATOM clsHandle;
     int cmdShow;
-    WindowPainter* painter;
+    luaUi::WindowPainter* painter;
 };
 
 AppWindow::AppWindow(HINSTANCE instance, int cmdShow) {
@@ -45,11 +23,13 @@ AppWindow::AppWindow(HINSTANCE instance, int cmdShow) {
     this->clsHandle = {};
     this->window = {};
     this->cmdShow = cmdShow;
-    this->painter = &WindowPainter::defaultPainter;
+    this->painter = &luaUi::WindowPainter::defaultPainter;
 }
 
 void AppWindow::paint() {
-    painter->paint(window);
+    painter->paintBegin(window);
+    painter->paint();
+    painter->paintFinish();
 }
 
 LRESULT WINAPI wndProc(HWND window, UINT msg, WPARAM wParam, LPARAM lParam) {
