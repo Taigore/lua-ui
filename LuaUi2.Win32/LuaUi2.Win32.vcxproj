@@ -159,6 +159,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LuaPainter.cpp" />
     <ClCompile Include="MessageLoop.cpp" />
     <ClCompile Include="WindowPainter.cpp" />
     <ClCompile Include="WinMain.cpp" />
@@ -169,6 +170,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LuaPainter.h" />
     <ClInclude Include="MessageLoop.h" />
     <ClInclude Include="WindowPainter.h" />
   </ItemGroup>

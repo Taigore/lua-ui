@@ -1,5 +1,6 @@
 #include "MessageLoop.h"
 #include "WindowPainter.h"
+#include "LuaPainter.h"
 
 #include <Windows.h>
 
@@ -9,6 +10,7 @@ public:
 
     void setup();
     void paint();
+    void setPainter(luaUi::WindowPainter* newPainter);
 
 private:
     HINSTANCE instance;
@@ -90,12 +92,20 @@ void AppWindow::setup() {
     UpdateWindow(window);
 }
 
+void AppWindow::setPainter(luaUi::WindowPainter* newPainter) {
+    this->painter = newPainter;
+}
+
 int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In_ LPSTR cmdLine, _In_ int cmdShow) {
     UNREFERENCED_PARAMETER(prevInstance);
     UNREFERENCED_PARAMETER(cmdLine);
     UNREFERENCED_PARAMETER(cmdShow);
 
+    auto painter = new luaUi::LuaPainter();
+    painter->setup();
+
     auto window = new AppWindow{ instance, cmdShow };
+    window->setPainter(painter);
     window->setup();
 
     auto loop = luaUi::MessageLoop{};
