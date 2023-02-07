@@ -1,3 +1,5 @@
+#include "MessageLoop.h"
+
 #include <Windows.h>
 
 class AppWindow {
@@ -28,6 +30,19 @@ LRESULT WINAPI wndProc(HWND window, UINT msg, WPARAM wParam, LPARAM lParam) {
         auto appWindow = (AppWindow*)createStruct->lpCreateParams;
 
         SetWindowLongPtr(window, GWLP_USERDATA, (LONG_PTR)appWindow);
+
+        return 0;
+    }
+    case WM_PAINT:
+    {
+        auto paintStruct = PAINTSTRUCT{};
+        auto dc = BeginPaint(window, &paintStruct);
+        auto brush = CreateSolidBrush(RGB(0, 0, 0));
+        FillRect(dc, &(paintStruct.rcPaint), brush);
+        DeleteObject(brush);
+        EndPaint(window, &paintStruct);
+
+        ValidateRect(window, &(paintStruct.rcPaint));
 
         return 0;
     }
@@ -69,56 +84,6 @@ void AppWindow::setup() {
     UpdateWindow(winHandle);
 }
 
-class MessageLoop {
-public:
-    void run();
-    int getExitCode() const;
-
-private:
-    MSG message;
-    int exitCode;
-    BYTE padding[4];
-};
-
-void MessageLoop::run() {
-    exitCode = -1;
-
-    while (true) {
-        auto bRet = GetMessage(&message, NULL, 0, 0);
-        switch (bRet) {
-        case -1:
-        {
-            auto flags = 0u
-                | FORMAT_MESSAGE_ALLOCATE_BUFFER
-                | FORMAT_MESSAGE_FROM_SYSTEM
-                | FORMAT_MESSAGE_IGNORE_INSERTS;
-
-            auto error = GetLastError();
-            auto buffer = (WCHAR*)nullptr;
-            FormatMessage(flags, NULL, error, 0u, (LPWSTR)&buffer, 0u, nullptr);
-            OutputDebugString(buffer);
-
-            exitCode = -1;
-            return;
-        }
-        case 0:
-        {
-            exitCode = (int)message.wParam;
-            return;
-        }
-        default:
-        {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
-        }
-    }
-}
-
-int MessageLoop::getExitCode() const {
-    return exitCode;
-}
-
 int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In_ LPSTR cmdLine, _In_ int cmdShow) {
     UNREFERENCED_PARAMETER(prevInstance);
     UNREFERENCED_PARAMETER(cmdLine);
@@ -127,7 +92,7 @@ int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In
     auto window = new AppWindow{ instance, cmdShow };
     window->setup();
 
-    auto loop = MessageLoop{};
+    auto loop = luaUi::MessageLoop{};
     loop.run();
 
     return loop.getExitCode();
