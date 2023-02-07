@@ -2,24 +2,54 @@
 
 #include <Windows.h>
 
+class WindowPainter {
+public:
+    static WindowPainter defaultPainter;
+
+    void paint(HWND window);
+
+private:
+    HDC dc;
+    PAINTSTRUCT paintStruct;
+};
+
+WindowPainter WindowPainter::defaultPainter{};
+
+void WindowPainter::paint(HWND window) {
+    dc = BeginPaint(window, &paintStruct);
+    auto brush = CreateSolidBrush(RGB(0, 0, 0));
+    FillRect(dc, &(paintStruct.rcPaint), brush);
+    DeleteObject(brush);
+    EndPaint(window, &paintStruct);
+    dc = {};
+    paintStruct = {};
+}
+
 class AppWindow {
 public:
     AppWindow(HINSTANCE instance, int cmdShow);
 
     void setup();
+    void paint();
 
 private:
     HINSTANCE instance;
-    HWND winHandle;
+    HWND window;
     ATOM clsHandle;
     int cmdShow;
+    WindowPainter* painter;
 };
 
 AppWindow::AppWindow(HINSTANCE instance, int cmdShow) {
     this->instance = instance;
     this->clsHandle = {};
-    this->winHandle = {};
+    this->window = {};
     this->cmdShow = cmdShow;
+    this->painter = &WindowPainter::defaultPainter;
+}
+
+void AppWindow::paint() {
+    painter->paint(window);
 }
 
 LRESULT WINAPI wndProc(HWND window, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -35,14 +65,10 @@ LRESULT WINAPI wndProc(HWND window, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
     case WM_PAINT:
     {
-        auto paintStruct = PAINTSTRUCT{};
-        auto dc = BeginPaint(window, &paintStruct);
-        auto brush = CreateSolidBrush(RGB(0, 0, 0));
-        FillRect(dc, &(paintStruct.rcPaint), brush);
-        DeleteObject(brush);
-        EndPaint(window, &paintStruct);
+        auto appWindow = (AppWindow*)GetWindowLongPtr(window, GWLP_USERDATA);
+        appWindow->paint();
 
-        ValidateRect(window, &(paintStruct.rcPaint));
+        ValidateRect(window, nullptr);
 
         return 0;
     }
@@ -66,7 +92,7 @@ void AppWindow::setup() {
 
     clsHandle = RegisterClassExW(&wndClass);
 
-    winHandle = CreateWindowEx(
+    window = CreateWindowEx(
         WS_EX_OVERLAPPEDWINDOW,
         (LPCWSTR)clsHandle,
         L"Main window",
@@ -80,8 +106,8 @@ void AppWindow::setup() {
         instance,
         this);
 
-    ShowWindow(winHandle, cmdShow);
-    UpdateWindow(winHandle);
+    ShowWindow(window, cmdShow);
+    UpdateWindow(window);
 }
 
 int WINAPI WinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In_ LPSTR cmdLine, _In_ int cmdShow) {
